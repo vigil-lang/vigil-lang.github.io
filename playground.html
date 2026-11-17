@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>var l=(/[?&]lang=(pt|en)/.exec(location.search)||[])[1];try{l=l||localStorage.getItem("vigil-lang")}catch(e){}document.documentElement.dataset.uiLang=l||((navigator.language||"").toLowerCase().indexOf("pt")===0?"pt":"en")</script>
+  <title>Playground — Vigil</title>
+  <meta name="i18n-title" content="title.playground">
+  <link rel="icon" href="img/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="playground">
+  <header class="site-header">
+    <div class="container" style="max-width:none">
+      <a class="brand" href="index.html"><img src="img/logo.svg" alt="">Vigil</a>
+      <nav class="site-nav">
+        <a href="index.html"><span data-lang="pt">Início</span><span data-lang="en">Home</span></a>
+        <a href="tutorial.html">Tutorial</a>
+        <a href="playground.html" class="active">Playground</a>
+        <span class="lang-switch" role="group" aria-label="Language"></span>
+      </nav>
+    </div>
+  </header>
+
+  <div class="pg-toolbar">
+    <button class="button small" id="compile" data-i18n-title="pg.compileTitle">▶ <span data-lang="pt">Compilar</span><span data-lang="en">Compile</span></button>
+    <button class="button small secondary" id="format"><span data-lang="pt">Formatar</span><span data-lang="en">Format</span></button>
+    <button class="button small secondary" id="share"><span data-lang="pt">Compartilhar</span><span data-lang="en">Share</span></button>
+    <label><span data-lang="pt">Exemplo</span><span data-lang="en">Example</span> <select id="examples"></select></label>
+    <span class="spacer"></span>
+    <label>Kernel
+      <select id="kernel">
+        <option value="5.4">Linux 5.4</option>
+        <option value="5.15">Linux 5.15</option>
+        <option value="6.1" selected>Linux 6.1</option>
+        <option value="6.6">Linux 6.6</option>
+        <option value="6.12">Linux 6.12</option>
+      </select>
+    </label>
+    <label><span data-lang="pt">Arquitetura</span><span data-lang="en">Architecture</span>
+      <select id="arch">
+        <option value="x86_64">x86-64</option>
+        <option value="aarch64">arm64</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="optimize" checked> <span data-lang="pt">Otimizar</span><span data-lang="en">Optimize</span></label>
+  </div>
+
+  <main class="pg-main">
+    <div id="editor"></div>
+    <div class="pg-output">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="diagnostics"><span data-lang="pt">Diagnósticos</span><span data-lang="en">Diagnostics</span> <span class="badge" id="badge-diag">·</span></button>
+        <button class="tab" data-tab="programs"><span data-lang="pt">Programas</span><span data-lang="en">Programs</span></button>
+        <button class="tab" data-tab="ir">LLVM IR</button>
+        <button class="tab" data-tab="ebpf"><span data-lang="pt">eBPF certificado</span><span data-lang="en">Certified eBPF</span></button>
+        <button class="tab" data-tab="run"><span data-lang="pt">Executar</span><span data-lang="en">Run</span></button>
+      </div>
+      <div class="panel active" id="panel-diagnostics"><p class="loading"><span data-lang="pt">Carregando o compilador…</span><span data-lang="en">Loading the compiler…</span></p></div>
+      <div class="panel" id="panel-programs"></div>
+      <div class="panel" id="panel-ir"></div>
+      <div class="panel" id="panel-ebpf"></div>
+      <div class="panel" id="panel-run">
+        <div class="notice">
+          <span data-lang="pt">Executa no navegador o código eBPF do <strong>backend certificado</strong>,
+            num interpretador, para os programas XDP e TC que estão em Vigil Core (veja o
+            <a href="tutorial.html#core">tutorial</a>).</span>
+          <span data-lang="en">Runs the eBPF code of the <strong>certified backend</strong> in the
+            browser, in an interpreter, for the XDP and TC programs that are in Vigil Core (see the
+            <a href="tutorial.html#core">tutorial</a>).</span>
+        </div>
+        <div class="run-form">
+          <div class="row">
+            <label><span data-lang="pt">Programa</span><span data-lang="en">Program</span> <select id="run-program"></select></label>
+            <label><span data-lang="pt">Pacote</span><span data-lang="en">Packet</span> <select id="run-preset"></select></label>
+          </div>
+          <textarea class="plain" id="run-packet" spellcheck="false"
+            data-i18n-aria-label="packet.placeholder" data-i18n-placeholder="packet.placeholder"></textarea>
+          <div class="row"><button class="button small" id="run">▶ <span data-lang="pt">Executar</span><span data-lang="en">Run</span></button></div>
+        </div>
+        <div id="run-result"></div>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+  </main>
+
+  <script type="module" src="js/playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>var l=(/[?&]lang=(pt|en)/.exec(location.search)||[])[1];try{l=l||localStorage.getItem("vigil-lang")}catch(e){}document.documentElement.dataset.uiLang=l||((navigator.language||"").toLowerCase().indexOf("pt")===0?"pt":"en")</script>
+  <title>Vigil</title>
+  <meta name="i18n-title" content="title.home">
+  <meta name="description" content="Vigil: a statically typed language that compiles to eBPF.">
+  <link rel="icon" href="img/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="index.html"><img src="img/logo.svg" alt="">Vigil</a>
+      <nav class="site-nav">
+        <a href="index.html" class="active"><span data-lang="pt">Início</span><span data-lang="en">Home</span></a>
+        <a href="tutorial.html">Tutorial</a>
+        <a href="playground.html">Playground</a>
+        <a href="#start"><span data-lang="pt">Instalar</span><span data-lang="en">Install</span></a>
+        <span class="lang-switch" role="group" aria-label="Language"></span>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <div>
+        <div class="hero-logo">
+          <img src="img/logo.svg" alt="">
+          <h1>Vigil</h1>
+        </div>
+        <p class="tagline">
+          <span data-lang="pt">Uma linguagem estaticamente tipada que compila para eBPF.</span>
+          <span data-lang="en">A statically typed language that compiles to eBPF.</span>
+        </p>
+        <p class="sub">
+          <span data-lang="pt">Escreva programas de rastreamento, de segurança e de processamento de
+            pacotes que rodam dentro do kernel Linux. O compilador rejeita, com erros no seu
+            código-fonte, o que o verificador do kernel rejeitaria.</span>
+          <span data-lang="en">Write tracing, security and packet-processing programs that run
+            inside the Linux kernel. The compiler rejects, with errors on your source code, what
+            the kernel verifier would reject.</span>
+        </p>
+        <div class="hero-buttons">
+          <a class="button" href="tutorial.html"><span data-lang="pt">Comece o tutorial →</span><span data-lang="en">Start the tutorial →</span></a>
+          <a class="button ghost" href="playground.html"><span data-lang="pt">Abrir o playground</span><span data-lang="en">Open the playground</span></a>
+        </div>
+      </div>
+
+      <div class="try" id="try">
+        <div class="try-title">
+          <span data-lang="pt">Experimente!</span><span data-lang="en">Try it!</span>
+          <span class="try-sub"><span data-lang="pt">compilado no seu navegador</span><span data-lang="en">compiled in your browser</span></span>
+        </div>
+        <div id="try-editor"></div>
+        <div class="try-controls">
+          <select id="try-packet" data-i18n-aria-label="home.packet"></select>
+          <button class="button small" id="try-run">▶ <span data-lang="pt">Executar</span><span data-lang="en">Run</span></button>
+        </div>
+        <pre class="try-output" id="try-output"><span data-lang="pt">Escolha um pacote e execute o filtro. O compilador Vigil
+roda aqui, em WebAssembly, e o eBPF gerado roda num interpretador.</span><span data-lang="en">Choose a packet and run the filter. The Vigil compiler
+runs here, in WebAssembly, and the eBPF it makes runs in an interpreter.</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="container">
+      <h2><span data-lang="pt">Por que Vigil?</span><span data-lang="en">Why Vigil?</span></h2>
+      <p class="lead">
+        <span data-lang="pt">eBPF é poderoso, mas escrever eBPF em C significa brigar com o verificador.
+          Vigil leva as regras do verificador para o sistema de tipos.</span>
+        <span data-lang="en">eBPF is powerful, but writing eBPF in C means fighting the verifier.
+          Vigil brings the rules of the verifier into the type system.</span>
+      </p>
+      <div class="features">
+        <div class="feature">
+          <h3><span class="icon">Py</span><span data-lang="pt">Sintaxe de Python</span><span data-lang="en">Python syntax</span></h3>
+          <p data-lang="pt">Indentação, <code>def</code>, <code>if</code>, <code>for</code>, f-strings e
+            decoradores. Sem cabeçalhos, sem macros, sem ponteiros.</p>
+          <p data-lang="en">Indentation, <code>def</code>, <code>if</code>, <code>for</code>, f-strings and
+            decorators. No headers, no macros, no pointers.</p>
+        </div>
+        <div class="feature">
+          <h3><span class="icon">✓</span><span data-lang="pt">Seguro para o verificador</span><span data-lang="en">Verifier-safe</span></h3>
+          <p data-lang="pt">Laços sem limite, recursão, ponto flutuante e acessos não verificados ao pacote são
+            erros de compilação, apontados no seu código.</p>
+          <p data-lang="en">Unbounded loops, recursion, floating point and unchecked packet accesses are
+            compile errors, pointed out in your code.</p>
+        </div>
+        <div class="feature">
+          <h3><span class="icon">T</span><span data-lang="pt">Tipos estáticos</span><span data-lang="en">Static types</span></h3>
+          <p data-lang="pt">Inferência por unificação, inteiros sem conversões implícitas, structs, enums com
+            dados, <code>Option</code> e <code>match</code> exaustivo.</p>
+          <p data-lang="en">Inference by unification, integers without implicit conversions, structs, enums
+            with data, <code>Option</code> and exhaustive <code>match</code>.</p>
+        </div>
+        <div class="feature">
+          <h3><span class="icon">⇄</span><span data-lang="pt">Mapas e eventos tipados</span><span data-lang="en">Typed maps and events</span></h3>
+          <p data-lang="pt">Hash, LRU, arrays por CPU, ring buffers e tail calls, declarados no topo do arquivo
+            e usados com métodos tipados.</p>
+          <p data-lang="en">Hash, LRU, per-CPU arrays, ring buffers and tail calls, declared at the top of
+            the file and used through typed methods.</p>
+        </div>
+        <div class="feature">
+          <h3><span class="icon">[N]</span><span data-lang="pt">Genéricos e protocolos</span><span data-lang="en">Generics and protocols</span></h3>
+          <p data-lang="pt">Parâmetros de tipo e constantes (<code>Matrix[T, R, C]</code>), protocolos e
+            sobrecarga de operadores, para bibliotecas que rodam no kernel.</p>
+          <p data-lang="en">Type and constant parameters (<code>Matrix[T, R, C]</code>), protocols and
+            operator overloading, for libraries that run in the kernel.</p>
+        </div>
+        <div class="feature">
+          <h3><span class="icon">λ</span><span data-lang="pt">Código em tempo de compilação</span><span data-lang="en">Compile-time code</span></h3>
+          <p data-lang="pt">Funções <code>comptime</code> calculam tabelas, máscaras e pesos quantizados — até
+            com <code>f64</code> — antes do programa chegar ao kernel.</p>
+          <p data-lang="en"><code>comptime</code> functions compute tables, masks and quantized weights —
+            even with <code>f64</code> — before the program reaches the kernel.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band alt">
+    <div class="container">
+      <h2><span data-lang="pt">Em poucas linhas</span><span data-lang="en">In a few lines</span></h2>
+      <p class="lead"><span data-lang="pt">Do rastreamento de chamadas do kernel a firewalls XDP.</span><span data-lang="en">From tracing kernel calls to XDP firewalls.</span></p>
+
+      <div class="showcase">
+        <div class="showcase-text">
+          <h3><span data-lang="pt">Rastreamento</span><span data-lang="en">Tracing</span></h3>
+          <p data-lang="pt">Um programa é uma função com o decorador do seu tipo. Este conta, por processo,
+            os arquivos abertos, num mapa que o espaço de usuário lê.</p>
+          <p data-lang="en">A program is a function with the decorator of its type. This one counts the
+            files each process opens, in a map that userspace reads.</p>
+        </div>
+        <pre class="code" data-code="pid"># Counts the files opened by each process.
+from std.bpf import KprobeContext, pid_tgid
+
+map opens: Hash[u32, u64](max_entries=10240)
+
+@kprobe("do_sys_openat2")
+def count_opens(ctx: KprobeContext) -> i32:
+    pid = u32(pid_tgid() >> 32)
+    count = opens.get_or_insert(pid, 0)
+    count += 1
+    return 0</pre>
+      </div>
+
+      <div class="showcase">
+        <div class="showcase-text">
+          <h3><span data-lang="pt">Pacotes</span><span data-lang="en">Packets</span></h3>
+          <p data-lang="pt"><code>ctx.parse[H](offset)</code> devolve o cabeçalho, ou <code>None</code> se o
+            pacote for curto demais; <code>?</code> deixa o pacote passar. É exatamente a
+            verificação de limites que o verificador exige.</p>
+          <p data-lang="en"><code>ctx.parse[H](offset)</code> gives the header, or <code>None</code> if the
+            packet is too short; <code>?</code> lets the packet pass. That is exactly the bounds
+            check the verifier demands.</p>
+        </div>
+        <pre class="code" data-code="fw">from std.net import XdpContext, XdpAction, EthHdr, Ipv4Hdr, ETH_HLEN, ETH_P_IP
+
+map blocked: Hash[u32, bool](max_entries=1024)
+
+@xdp(iface="eth0")
+def firewall(ctx: XdpContext) -> XdpAction:
+    eth = ctx.parse[EthHdr](0)?
+    if eth.proto != ETH_P_IP:
+        return XdpAction.PASS
+    ip = ctx.parse[Ipv4Hdr](ETH_HLEN)?
+    if blocked.contains(ip.saddr):
+        return XdpAction.DROP
+    return XdpAction.PASS</pre>
+      </div>
+
+      <div class="showcase">
+        <div class="showcase-text">
+          <h3><span data-lang="pt">Erros no lugar certo</span><span data-lang="en">Errors in the right place</span></h3>
+          <p data-lang="pt">Em vez de uma lista de instruções rejeitadas pelo verificador, você recebe um erro
+            na linha do problema, com uma sugestão.</p>
+          <p data-lang="en">Instead of a listing of instructions the verifier rejected, you get an error on
+            the line of the problem, with a suggestion.</p>
+        </div>
+        <pre class="code" data-code="err">def halve(n: u32) -> u32:
+    # error[E0412]: `while` loops need a bound
+    while n > 100:
+        n = n // 2
+    return n</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="start">
+    <div class="container">
+      <h2><span data-lang="pt">Comece agora</span><span data-lang="en">Get started</span></h2>
+      <p class="lead">
+        <span data-lang="pt">O compilador é um único executável, com a biblioteca padrão embutida. Para
+          gerar objetos eBPF pelo LLVM ele usa o clang; o backend certificado e o playground dispensam.</span>
+        <span data-lang="en">The compiler is a single executable, with the standard library built in. It
+          uses clang to make eBPF objects through LLVM; the certified backend and the playground do not.</span>
+      </p>
+      <div class="steps">
+        <div class="step">
+          <div>
+            <h3><span data-lang="pt">Instale o compilador</span><span data-lang="en">Install the compiler</span></h3>
+            <div class="install">
+              <pre class="code small" id="install-cmd">curl -fsSL https://vigil-lang.github.io/install.sh | sh</pre>
+              <button class="button small secondary" id="install-copy" type="button"><span data-lang="pt">Copiar</span><span data-lang="en">Copy</span></button>
+            </div>
+            <p class="note" data-lang="pt">Linux e macOS, em x86_64 e aarch64; instala <code>vigil</code> em
+              <code>~/.local/bin</code>. <a href="install.sh">Leia o script</a> antes de executá-lo, ou compile
+              do código-fonte: <code>cd compiler &amp;&amp; cargo build --release</code>.</p>
+            <p class="note" data-lang="en">Linux and macOS, on x86_64 and aarch64; installs <code>vigil</code> in
+              <code>~/.local/bin</code>. <a href="install.sh">Read the script</a> before running it, or build
+              from source: <code>cd compiler &amp;&amp; cargo build --release</code>.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div>
+            <h3><span data-lang="pt">Verifique e compile um programa</span><span data-lang="en">Check and build a program</span></h3>
+            <pre class="code small">vigil check examples/xdp_firewall.vg
+vigil build examples/xdp_firewall.vg -o firewall.o     # clang ≥ 15
+vigil build examples/xdp_firewall.vg --emit ir         # LLVM IR, no clang</pre>
+          </div>
+        </div>
+        <div class="step">
+          <div>
+            <h3><span data-lang="pt">Ou use o backend certificado, sem LLVM</span><span data-lang="en">Or use the certified backend, without LLVM</span></h3>
+            <pre class="code small">vigil build examples/xdp_certified.vg --certified --emit asm
+vigil simulate examples/xdp_certified.vg --packet "0000…"</pre>
+          </div>
+        </div>
+        <div class="step">
+          <div>
+            <h3><span data-lang="pt">Aprenda a linguagem</span><span data-lang="en">Learn the language</span></h3>
+            <p data-lang="pt">O <a href="tutorial.html">tutorial</a> percorre a linguagem com exemplos que você
+              abre no <a href="playground.html">playground</a> com um clique.</p>
+            <p data-lang="en">The <a href="tutorial.html">tutorial</a> tours the language with examples you
+              open in the <a href="playground.html">playground</a> with one click.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div><span data-lang="pt">Vigil — compilador de uma linguagem para eBPF.</span><span data-lang="en">Vigil — a compiler of a language for eBPF.</span></div>
+      <div><a href="tutorial.html">Tutorial</a> · <a href="playground.html">Playground</a></div>
+    </div>
+  </footer>
+
+  <script type="module" src="js/home.js"></script>
+</body>
+</html>

@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>var l=(/[?&]lang=(pt|en)/.exec(location.search)||[])[1];try{l=l||localStorage.getItem("vigil-lang")}catch(e){}document.documentElement.dataset.uiLang=l||((navigator.language||"").toLowerCase().indexOf("pt")===0?"pt":"en")</script>
+  <title>Tutorial — Vigil</title>
+  <meta name="i18n-title" content="title.tutorial">
+  <link rel="icon" href="img/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="index.html"><img src="img/logo.svg" alt="">Vigil</a>
+      <nav class="site-nav">
+        <a href="index.html"><span data-lang="pt">Início</span><span data-lang="en">Home</span></a>
+        <a href="tutorial.html" class="active">Tutorial</a>
+        <a href="playground.html">Playground</a>
+        <span class="lang-switch" role="group" aria-label="Language"></span>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container doc">
+    <nav class="toc">
+      <h4><span data-lang="pt">Sumário</span><span data-lang="en">Contents</span></h4>
+      <ol id="toc"></ol>
+    </nav>
+
+    <article>
+      <h1><span data-lang="pt">Tutorial de Vigil</span><span data-lang="en">A tour of Vigil</span></h1>
+      <div data-lang="pt">
+        <p>Este tutorial apresenta a linguagem por exemplos. Todo bloco de código tem um botão
+          <strong>Experimentar</strong>, que o abre no <a href="playground.html">playground</a>: lá
+          o compilador roda no seu navegador e mostra os erros, o LLVM IR gerado e, para os
+          programas do subconjunto Vigil Core, as instruções eBPF — que você pode executar sobre
+          um pacote.</p>
+        <p>Blocos com a borda vermelha são programas que o compilador <em>rejeita</em>, de
+          propósito: abra-os para ver a mensagem de erro.</p>
+      </div>
+      <div data-lang="en">
+        <p>This tutorial presents the language by example. Every code block has a
+          <strong>Try it</strong> button that opens it in the <a href="playground.html">playground</a>:
+          there the compiler runs in your browser and shows the errors, the generated LLVM IR and,
+          for programs of the Vigil Core subset, the eBPF instructions — which you can run on a
+          packet.</p>
+        <p>Blocks with a red border are programs the compiler <em>rejects</em>, on purpose: open
+          them to see the error message.</p>
+      </div>
+
+      <!-- ================================================================== -->
+      <h2 id="ebpf"><span data-lang="pt">O que é eBPF, e por que Vigil</span><span data-lang="en">What eBPF is, and why Vigil</span></h2>
+      <div data-lang="pt">
+        <p>eBPF permite carregar pequenos programas no kernel Linux, que rodam quando algo
+          acontece: uma função do kernel é chamada (<em>kprobes</em>), um evento é registrado
+          (<em>tracepoints</em>), um pacote chega à placa de rede (<em>XDP</em>) ou passa pela pilha
+          de rede (<em>TC</em>), uma verificação de segurança é feita (<em>LSM</em>). Os programas
+          guardam estado em <em>mapas</em>, que o espaço de usuário também lê e escreve.</p>
+        <p>Antes de aceitar um programa, o kernel o submete ao <strong>verificador</strong>, que
+          exige garantias: todo laço termina, todo acesso à memória está dentro dos limites, não há
+          ponto flutuante nem recursão, a pilha tem no máximo 512 bytes. Em C, violar essas regras
+          resulta numa rejeição em termos de instruções de máquina. Vigil é uma linguagem com a
+          sintaxe de Python cujo sistema de tipos conhece essas regras: o que o verificador
+          rejeitaria é um erro de compilação, apontado no seu código.</p>
+      </div>
+      <div data-lang="en">
+        <p>eBPF loads small programs into the Linux kernel, which run when something happens: a
+          kernel function is called (<em>kprobes</em>), an event is recorded
+          (<em>tracepoints</em>), a packet reaches the network card (<em>XDP</em>) or goes through
+          the network stack (<em>TC</em>), a security check is made (<em>LSM</em>). Programs keep
+          state in <em>maps</em>, which userspace reads and writes too.</p>
+        <p>Before it accepts a program, the kernel runs it through the <strong>verifier</strong>,
+          which demands guarantees: every loop ends, every memory access is within bounds, there is
+          no floating point and no recursion, the stack is at most 512 bytes. In C, breaking these
+          rules ends in a rejection phrased in machine instructions. Vigil is a language with the
+          syntax of Python whose type system knows those rules: what the verifier would reject is
+          a compile error, pointed out in your code.</p>
+      </div>
+
+      <!-- ================================================================== -->
+      <h2 id="first"><span data-lang="pt">Um primeiro programa</span><span data-lang="en">A first program</span></h2>
+      <pre class="code" data-try># Prints a line to the trace pipe every time a file is opened.
+from std.bpf import KprobeContext, pid_tgid
+
+@kprobe("do_sys_openat2")
+def on_open(ctx: KprobeContext) -> i32:
+    pid = pid_tgid() >> 32
+    print(f"openat2 called by pid {pid}")
+    return 0</pre>
+      <div data-lang="pt">
+        <p>Um <strong>programa</strong> é uma função de nível superior com o decorador do seu tipo
+          (<code>@kprobe</code>), que recebe o contexto desse tipo e devolve um inteiro. Aqui, a
+          cada chamada da função do kernel <code>do_sys_openat2</code>, o programa lê o
+          identificador do processo com o helper <code>pid_tgid()</code> da biblioteca padrão e
+          escreve uma linha com <code>print</code>.</p>
+        <p>Na linha de comando, <code>vigil check arquivo.vg</code> verifica o programa e
+          <code>vigil build arquivo.vg</code> gera o objeto eBPF (com o clang), que ferramentas
+          como <code>bpftool</code> ou bibliotecas como libbpf e aya carregam no kernel.</p>
+      </div>
+      <div data-lang="en">
+        <p>A <strong>program</strong> is a top-level function with the decorator of its type
+          (<code>@kprobe</code>), which takes the context of that type and returns an integer.
+          Here, every time the kernel function <code>do_sys_openat2</code> is called, the program
+          reads the process id with the <code>pid_tgid()</code> helper of the standard library and
+          writes a line with <code>print</code>.</p>
+        <p>On the command line, <code>vigil check file.vg</code> checks the program and
+          <code>vigil build file.vg</code> makes the eBPF object (with clang), which tools such as
+          <code>bpftool</code> or libraries such as libbpf and aya load into the kernel.</p>
+      </div>
+
+      <!-- ================================================================== -->
+      <h2 id="types"><span data-lang="pt">Tipos e variáveis</span><span data-lang="en">Types and variables</span></h2>
+      <p data-lang="pt">Os tipos básicos são os inteiros <code>u8 u16 u32 u64 usize</code> (sem sinal) e
+        <code>i8 i16 i32 i64</code> (com sinal), e <code>bool</code>. Inteiros
+        <strong>nunca</strong> se convertem implicitamente: <code>u32 + u64</code> é um erro de
+        tipo. A conversão é uma chamada do tipo, como <code>u64(x)</code>, que também aceita um
+        <code>bool</code> (1 ou 0).</p>
+      <p data-lang="en">The basic types are the integers <code>u8 u16 u32 u64 usize</code> (unsigned)
+        and <code>i8 i16 i32 i64</code> (signed), and <code>bool</code>. Integers
+        <strong>never</strong> convert implicitly: <code>u32 + u64</code> is a type error. A
+        conversion is a call of the type, such as <code>u64(x)</code>, which also accepts a
+        <code>bool</code> (1 or 0).</p>
+      <pre class="code" data-try>def mix(a: u32, b: u64) -> u64:
+    small: u8 = 0b1010      # the literal takes the type u8
+    wide = u64(a) + b       # explicit conversion
+    half = wide // 2        # integer division is //
+    flag = u64(a > 3)       # a bool is 1 or 0
+    return half + flag + u64(small)</pre>
+      <p data-lang="pt">Uma variável é declarada na primeira atribuição. Seu tipo é
+        <strong>inferido</strong> de todos os seus usos na função; um literal inteiro assume o tipo
+        que o contexto exige. Anote o tipo (<code>x: u64 = 0</code>) quando nada mais o determina.
+        Os parâmetros e o tipo de retorno são sempre anotados.</p>
+      <p data-lang="en">A variable is declared by its first assignment. Its type is
+        <strong>inferred</strong> from all its uses in the function; an integer literal takes the
+        type its context demands. Annotate the type (<code>x: u64 = 0</code>) when nothing else
+        decides it. Parameters and return types are always annotated.</p>
+      <pre class="code" data-try>def total(xs: u32[4]) -> u32:
+    sum = 0             # u32: it is returned below
+    for x in xs:
+        sum += x
+    big: u64 = 1 &lt;&lt; 40  # an annotation fixes the type
+    return sum + u32(big >> 40)</pre>
+      <p data-lang="pt">As operações seguem as instruções do eBPF: a aritmética dá a volta
+        (<em>wraps</em>), <code>x // 0 == 0</code> e <code>x % 0 == x</code>. Não há números de
+        ponto flutuante em tempo de execução — o verificador os rejeita. Para frações, use
+        <code>fixed[I, F]</code> de <code>std.fixed</code> (ponto fixo), ou calcule em tempo de
+        compilação (veja <a href="#comptime">Código em tempo de compilação</a>).</p>
+      <p data-lang="en">Operations follow the eBPF instructions: arithmetic wraps,
+        <code>x // 0 == 0</code> and <code>x % 0 == x</code>. There are no floating-point numbers
+        at run time — the verifier rejects them. For fractions, use <code>fixed[I, F]</code> from
+        <code>std.fixed</code> (fixed point), or compute at compile time (see
+        <a href="#comptime">Compile-time code</a>).</p>
+
+      <h3><span data-lang="pt">Arrays, constantes e tuplas</span><span data-lang="en">Arrays, constants and tuples</span></h3>
+      <p data-lang="pt">Um array <code>T[N]</code> tem tamanho conhecido na compilação.
+        <code>[x] * N</code> cria <code>N</code> cópias. Um índice constante é verificado pelo
+        compilador; um índice calculado em tempo de execução que sai dos limites aborta o
+        programa.</p>
+      <p data-lang="en">An array <code>T[N]</code> has a length known at compile time.
+        <code>[x] * N</code> makes <code>N</code> copies. A constant index is checked by the
+        compiler; an index computed at run time that is out of bounds aborts the program.</p>
+      <pre class="code" data-try>const PRIMES: u8[4] = [2, 3, 5, 7]
+const MASK: u32 = (1 &lt;&lt; 24) - 1
+
+type Port = u16
+
+def sum_rows(grid: u32[4][2]) -> u32:
+    total: u32 = 0
+    for row in grid:          # two rows of four
+        for x in row:
+            total += x
+    zeros = [0] * 8
+    zeros[3] = total
+    return zeros[3] + grid[1][0] + u32(PRIMES[1])
+
+def ordered(a: u32, b: u32) -> u32:
+    lo, hi = a, b             # several assignments at once
+    if lo > hi:
+        lo, hi = hi, lo
+    return (hi - lo) &amp; MASK</pre>
+
+      <!-- ================================================================== -->
+      <h2 id="functions"><span data-lang="pt">Funções, structs e métodos</span><span data-lang="en">Functions, structs and methods</span></h2>
+      <p data-lang="pt">Funções recebem argumentos por valor. Parâmetros podem ter valores padrão e
+        as chamadas podem nomear argumentos. Todas as funções são incorporadas (<em>inlined</em>)
+        nos programas que as chamam; <strong>recursão é proibida</strong>, pois a pilha do eBPF é
+        pequena e fixa.</p>
+      <p data-lang="en">Functions take their arguments by value. Parameters may have default values
+        and calls may name their arguments. All functions are inlined into the programs that call
+        them; <strong>recursion is forbidden</strong>, since the eBPF stack is small and fixed.</p>
+      <pre class="code" data-try>struct Point:
+    x: i32
+    y: i32
+
+    def norm1(self) -> i32:
+        return max(self.x, -self.x) + max(self.y, -self.y)
+
+    def origin() -> Point:      # no self: called as Point.origin()
+        return Point(0, 0)
+
+struct Counter:
+    n: u64
+
+    @mut                        # changes self
+    def bump(self, by: u64 = 1):
+        self.n += by
+
+def demo(p: Point) -> u64:
+    q = Point(y=p.y, x=p.x + 1)
+    c = Counter(0)
+    c.bump()
+    c.bump(by=10)
+    if q.norm1() > Point.origin().norm1():
+        c.bump()
+    return c.n</pre>
+      <p data-lang="pt">Um struct é construído chamando-o com seus campos, por posição ou por nome.
+        Um método que altera <code>self</code> precisa de <code>@mut</code>.</p>
+      <p data-lang="en">A struct is built by calling it with its fields, by position or by name. A
+        method that changes <code>self</code> needs <code>@mut</code>.</p>
+
+      <!-- ================================================================== -->
+      <h2 id="enums"><span data-lang="pt">Enums e <code>match</code></span><span data-lang="en">Enums and <code>match</code></span></h2>
+      <p data-lang="pt">Variantes de um enum podem carregar valores, que <code>match</code> desmonta.
+        O <code>match</code> precisa cobrir todos os casos — esquecer um é erro de compilação.</p>
+      <p data-lang="en">The variants of an enum may carry values, which <code>match</code> takes
+        apart. A <code>match</code> must cover every case — forgetting one is a compile error.</p>
+      <pre class="code" data-try>enum Proto:
+    Tcp
+    Udp
+    Other(u8)
+
+    def of(n: u8) -> Proto:
+        match n:
+            case 6:
+                return Proto.Tcp
+            case 17:
+                return Proto.Udp
+            case _:
+                return Proto.Other(n)
+
+    def number(self) -> u8:
+        match self:
+            case Proto.Tcp:
+                return 6
+            case Proto.Udp:
+                return 17
+            case Proto.Other(n):
+                return n
+
+def classify(n: i32) -> u8:
+    match n:
+        case 0:
+            return 0
+        case 1 | 2 | -1:          # alternatives
+            return 1
+        case x if x > 100:        # a guard
+            return 2
+        case _:
+            return 3</pre>
+
+      <!-- ================================================================== -->
+      <h2 id="option"><span data-lang="pt">Option e <code>?</code></span><span data-lang="en">Option and <code>?</code></span></h2>
+      <p data-lang="pt"><code>Option[T]</code>, também escrito <code>T?</code>, é
+        <code>Some(valor)</code> ou <code>None</code>. O operador <code>?</code> extrai o valor, ou
+        sai da função quando é <code>None</code>: numa função que devolve um <code>Option</code>,
+        devolve <code>None</code>; num programa, devolve o padrão do tipo de programa
+        (<code>XDP_PASS</code> para XDP).</p>
+      <p data-lang="en"><code>Option[T]</code>, also written <code>T?</code>, is
+        <code>Some(value)</code> or <code>None</code>. The <code>?</code> operator takes the value
+        out, or leaves the function when it is <code>None</code>: in a function that returns an
+        <code>Option</code>, it returns <code>None</code>; in a program, it returns the default of
+        the program type (<code>XDP_PASS</code> for XDP).</p>
+      <pre class="code" data-try>def first_even(xs: u32[4]) -> u32?:
+    for x in xs:
+        if x % 2 == 0:
+            return Some(x)
+    return None
+
+def next_even(xs: u32[4]) -> u64?:
+    x = first_even(xs)?         # None: next_even returns None
+    return Some(u64(x) + 1)
+
+def or_zero(o: Option[u32]) -> u32:
+    match o:
+        case Some(v):
+            return v
+        case None:
+            return 0</pre>
+      <p data-lang="pt">Consultas a mapas e a leitura de cabeçalhos de pacotes devolvem opções:
+        <code>?</code> é como a maioria dos programas lê pacotes e mapas.</p>
+      <p data-lang="en">Map lookups and reading packet headers return options: <code>?</code> is how
+        most programs read packets and maps.</p>
+
+      <!-- ================================================================== -->
+      <h2 id="loops"><span data-lang="pt">Laços limitados</span><span data-lang="en">Bounded loops</span></h2>
+      <div data-lang="pt">
+        <p>O verificador rejeita laços que ele não consegue limitar. Em Vigil:</p>
+        <ul>
+          <li><code>for i in range(n)</code> e <code>for x in array</code> são sempre limitados;</li>
+          <li><code>while</code> exige <code>@bounded(N)</code>, o máximo de iterações;</li>
+          <li><code>@unroll</code> pede que o laço seja desenrolado.</li>
+        </ul>
+      </div>
+      <div data-lang="en">
+        <p>The verifier rejects loops it cannot bound. In Vigil:</p>
+        <ul>
+          <li><code>for i in range(n)</code> and <code>for x in array</code> are always bounded;</li>
+          <li><code>while</code> needs <code>@bounded(N)</code>, the most iterations it may run;</li>
+          <li><code>@unroll</code> asks for the loop to be unrolled.</li>
+        </ul>
+      </div>
+      <pre class="code" data-try>def loops(n: u32) -> u32:
+    total: u32 = 0
+    for i in range(n):
+        total += i
+    @bounded(16)
+    while total > 100:
+        total = total // 2
+    @unroll
+    for j in range(4):
+        if j == 2:
+            continue
+        total += u32(j)
+    return total</pre>
+      <p data-lang="pt">Sem o limite, o compilador recusa o laço:</p>
+      <p data-lang="en">Without the bound, the compiler refuses the loop:</p>
+      <pre class="code rejected" data-try># Rejected: E0412 `while` loops need a bound
+def halve(n: u32) -> u32:
+    while n > 100:
+        n = n // 2
+    return n</pre>
+      <p data-lang="pt">Em kernels com <code>bpf_loop</code> (Linux 5.17+), laços longos viram
+        callbacks de <code>bpf_loop</code>, que o verificador examina uma única vez. Troque o
+        kernel-alvo no playground e compare o LLVM IR.</p>
+      <p data-lang="en">On kernels with <code>bpf_loop</code> (Linux 5.17+), long loops become
+        <code>bpf_loop</code> callbacks, which the verifier examines only once. Change the target
+        kernel in the playground and compare the LLVM IR.</p>
+
+      <!-- ================================================================== -->
+      <h2 id="packets"><span data-lang="pt">Pacotes: XDP e TC</span><span data-lang="en">Packets: XDP and TC</span></h2>
+      <p data-lang="pt">Programas XDP rodam quando um pacote chega à placa de rede, antes da pilha de
+        rede do kernel; devolvem um veredito: <code>PASS</code>, <code>DROP</code>,
+        <code>TX</code>, <code>REDIRECT</code> ou <code>ABORTED</code>.
+        <code>ctx.parse[H](offset)</code> devolve uma referência ao cabeçalho <code>H</code> naquele
+        deslocamento, ou <code>None</code> se o pacote for curto demais — a verificação de limites
+        que o verificador exige, sem que você precise escrevê-la.</p>
+      <p data-lang="en">XDP programs run when a packet reaches the network card, before the
+        kernel's network stack; they return a verdict: <code>PASS</code>, <code>DROP</code>,
+        <code>TX</code>, <code>REDIRECT</code> or <code>ABORTED</code>.
+        <code>ctx.parse[H](offset)</code> gives a reference to the header <code>H</code> at that
+        offset, or <code>None</code> if the packet is too short — the bounds check the verifier
+        demands, without you writing it.</p>
+      <pre class="code" data-try>from std.net import XdpContext, XdpAction, EthHdr, Ipv4Hdr, UdpHdr, ETH_HLEN, ETH_P_IP, IPPROTO_UDP, UDP_HLEN
+
+# The fixed header of DNS. Fields of @network_order structs are big-endian.
+@network_order
+struct DnsHdr:
+    id: u16
+    flags: u16
+    qdcount: u16
+    ancount: u16
+    nscount: u16
+    arcount: u16
+
+@xdp(iface="eth0")
+def dns_guard(ctx: XdpContext) -> XdpAction:
+    eth = ctx.parse[EthHdr](0)?          # too short: XDP_PASS
+    if eth.proto != ETH_P_IP:
+        return XdpAction.PASS
+    ip = ctx.parse[Ipv4Hdr](ETH_HLEN)?
+    if ip.protocol != IPPROTO_UDP or ctx.len() > 512:
+        return XdpAction.PASS
+    udp_off = ETH_HLEN + ip.header_len()
+    udp = ctx.parse[UdpHdr](udp_off)?
+    if udp.dport != 53:
+        return XdpAction.PASS
+    dns = ctx.parse[DnsHdr](udp_off + UDP_HLEN)?
+    if dns.qdcount == 0:
+        return XdpAction.DROP
+    return XdpAction.PASS</pre>
+      <p data-lang="pt">Atribuir a um campo de um cabeçalho altera o pacote. Este programa TC troca os
+        endereços MAC e decrementa o TTL:</p>
+      <p data-lang="en">Assigning to a field of a header changes the packet. This TC program swaps
+        the MAC addresses and decrements the TTL:</p>
+      <pre class="code" data-try>from std.net import TcContext, TcAction, EthHdr, Ipv4Hdr, ETH_HLEN, ETH_P_IP
+
+@tc(direction="ingress", iface="eth0")
+def bounce(ctx: TcContext) -> TcAction:
+    eth = ctx.parse[EthHdr](0)?
+    if eth.proto != ETH_P_IP:
+        return TcAction.OK
+    ip = ctx.parse[Ipv4Hdr](ETH_HLEN)?
+    if ip.ttl > 1:
+        ip.ttl = ip.ttl - 1
+    mac = eth.src
+    eth.src = eth.dst
+    eth.dst = mac
+    return TcAction.OK</pre>
+
+      <!-- ================================================================== -->
+      <h2 id="maps"><span data-lang="pt">Mapas</span><span data-lang="en">Maps</span></h2>
+      <p data-lang="pt">Mapas guardam estado entre execuções e são compartilhados com o espaço de
+        usuário. São declarados no nível superior e usados pelo nome:</p>
+      <p data-lang="en">Maps keep state between runs and are shared with userspace. They are
+        declared at the top level and used by name:</p>
+      <table>
+        <tr><th><span data-lang="pt">Declaração</span><span data-lang="en">Declaration</span></th><th><span data-lang="pt">Tipo no kernel</span><span data-lang="en">Kernel type</span></th></tr>
+        <tr><td><code>Hash[K, V](max_entries=N)</code></td><td><code>BPF_MAP_TYPE_HASH</code></td></tr>
+        <tr><td><code>LruHash[K, V](max_entries=N)</code></td><td><span data-lang="pt">hash que descarta a entrada menos usada</span><span data-lang="en">a hash that evicts the least recently used entry</span></td></tr>
+        <tr><td><code>PerCpuHash[K, V](max_entries=N)</code></td><td><span data-lang="pt">um valor por CPU</span><span data-lang="en">a value per CPU</span></td></tr>
+        <tr><td><code>Array[V, N]</code>, <code>PerCpuArray[V, N]</code></td><td><span data-lang="pt">arrays com chaves</span><span data-lang="en">arrays with keys of type</span> <code>u32</code></td></tr>
+        <tr><td><code>ProgArray(max_entries=N)</code></td><td><span data-lang="pt">programas, para tail calls</span><span data-lang="en">programs, for tail calls</span></td></tr>
+        <tr><td><code>event e: RingBuf[T](size=N)</code></td><td><span data-lang="pt">ring buffer de eventos</span><span data-lang="en">a ring buffer of events</span></td></tr>
+      </table>
+      <pre class="code" data-try>from std.bpf import KprobeContext, pid_tgid, ktime_ns
+
+struct Stats:
+    calls: u64
+    last: u64
+
+map counts: Hash[u32, u64](max_entries=1024)
+map stats: LruHash[u32, Stats](max_entries=1024)
+map per_cpu: PerCpuArray[u64, 4]
+
+@kprobe("do_sys_openat2")
+def on_open(ctx: KprobeContext) -> i32:
+    pid = u32(pid_tgid() >> 32)
+    count = counts.get_or_insert(pid, 0)     # a reference into the map
+    count += 1                               # changes the map
+    st = stats.get_or_insert(pid, Stats(0, 0))
+    st.calls += 1
+    st.last = ktime_ns()
+    slot = per_cpu[pid % 4]?
+    slot += 1
+    match stats.get(pid):
+        case Some(s):
+            print(f"pid {pid}: {s.calls} calls")
+        case None:
+            pass
+    return 0</pre>
+      <p data-lang="pt"><code>get</code> devolve uma referência opcional ao valor no mapa;
+        <code>get_or_insert</code> cria a entrada se preciso. Ler uma referência copia o valor;
+        atribuir através dela altera o mapa.</p>
+      <p data-lang="en"><code>get</code> gives an optional reference to the value in the map;
+        <code>get_or_insert</code> creates the entry if needed. Reading a reference copies the
+        value; assigning through it changes the map.</p>
+
+      <!-- ================================================================== -->
+      <h2 id="events"><span data-lang="pt">Eventos</span><span data-lang="en">Events</span></h2>
+      <p data-lang="pt">Um ring buffer envia registros ao espaço de usuário. <code>emit</code> copia
+        um valor para ele e devolve <code>False</code> se estiver cheio.</p>
+      <p data-lang="en">A ring buffer sends records to userspace. <code>emit</code> copies a value
+        into it and returns <code>False</code> if it is full.</p>
+      <pre class="code" data-try>from std.bpf import KprobeContext, pid_tgid, ktime_ns, comm
+
+struct OpenEvent:
+    pid: u32
+    timestamp: u64
+    comm: bytes[16]
+
+event opens: RingBuf[OpenEvent](size=256 * 1024)
+
+@kprobe("do_sys_openat2")
+def on_open(ctx: KprobeContext) -> i32:
+    opens.emit(OpenEvent(
+        pid=u32(pid_tgid() >> 32),
+        timestamp=ktime_ns(),
+        comm=comm(),
+    ))
+    return 0</pre>
+
+      <!-- ================================================================== -->
+      <h2 id="generics"><span data-lang="pt">Genéricos e protocolos</span><span data-lang="en">Generics and protocols</span></h2>
+      <p data-lang="pt">Structs, enums e funções recebem parâmetros genéricos: tipos
+        (<code>T</code>), tipos limitados por um protocolo (<code>S: Shape</code>) e constantes
+        (<code>N: usize</code>). Cada uso é compilado à parte (monomorfização), e as dimensões são
+        verificadas na compilação.</p>
+      <p data-lang="en">Structs, enums and functions take generic parameters: types
+        (<code>T</code>), types bounded by a protocol (<code>S: Shape</code>) and constants
+        (<code>N: usize</code>). Each use is compiled on its own (monomorphization), and shapes are
+        checked at compile time.</p>
+      <pre class="code" data-try>struct Ring[T, N: usize]:
+    items: T[N]
+    head: usize
+
+    def empty(zero: T) -> Ring[T, N]:
+        return Ring[T, N]([zero] * N, 0)
+
+    @mut
+    def push(self, x: T):
+        self.items[self.head % N] = x
+        self.head += 1
+
+def doubled[N: usize](xs: u32[N]) -> u32[N * 2]:
+    out: u32[N * 2] = [0] * (N * 2)
+    for i in range(N):
+        out[i] = xs[i]
+        out[i + N] = xs[i]
+    return out
+
+protocol Shape:
+    def area(self) -> u64: ...
+
+struct Square(Shape):
+    side: u32
+
+    def area(self) -> u64:
+        return u64(self.side) * u64(self.side)
+
+def total_area[S: Shape, N: usize](shapes: S[N]) -> u64:
+    total: u64 = 0
+    for s in shapes:
+        total += s.area()
+    return total
+
+def demo() -> u64:
+    r = Ring[u64, 8].empty(0)
+    r.push(5)
+    d = doubled[3]([1, 2, 3])
+    return r.items[0] + u64(d[5]) + total_area[Square, 2]([Square(2), Square(3)])</pre>
+      <p data-lang="pt">Operadores em structs chamam métodos com os nomes de Python
+        (<code>__add__</code>, <code>__lt__</code>…). É assim que <code>fixed[I, F]</code> e os
+        vetores e matrizes de <code>std.ml.tensor</code> ganham sua aritmética:</p>
+      <p data-lang="en">Operators on structs call methods named as in Python (<code>__add__</code>,
+        <code>__lt__</code>…). This is how <code>fixed[I, F]</code> and the vectors and matrices
+        of <code>std.ml.tensor</code> get their arithmetic:</p>
+      <pre class="code" data-try>struct Money:
+    cents: u64
+
+    def __add__(self, other: Money) -> Money:
+        return Money(self.cents + other.cents)
+
+    def __lt__(self, other: Money) -> bool:
+        return self.cents &lt; other.cents
+
+def total(xs: Money[3]) -> Money:
+    t = Money(0)
+    for x in xs:
+        t += x
+    if t &lt; Money(10):
+        return Money(10)
+    return t</pre>
+
+      <!-- ================================================================== -->
+      <h2 id="comptime"><span data-lang="pt">Código em tempo de compilação</span><span data-lang="en">Compile-time code</span></h2>
+      <p data-lang="pt">Uma <code>comptime def</code> roda dentro do compilador. Ela pode usar
+        <code>f64</code> e funções matemáticas (<code>exp</code>, <code>log</code>,
+        <code>sqrt</code>, <code>tanh</code>…), e seus laços não precisam de limite. É assim que se
+        calculam tabelas, máscaras e pesos quantizados, que chegam ao kernel como constantes.</p>
+      <p data-lang="en">A <code>comptime def</code> runs inside the compiler. It may use
+        <code>f64</code> and math functions (<code>exp</code>, <code>log</code>,
+        <code>sqrt</code>, <code>tanh</code>…), and its loops need no bound. This is how tables,
+        masks and quantized weights are computed, which reach the kernel as constants.</p>
+      <pre class="code" data-try>from std.fixed import q8_8, quantize
+
+comptime def logistic(x: f64) -> f64:
+    return 1.0 / (1.0 + exp(-x))
+
+# The logistic function on [-8, 8), in steps of 1/4, in q8_8.
+comptime def sigmoid_table() -> i32[64]:
+    table: i32[64] = [0] * 64
+    for i in range(64):
+        x = (f64(i) - 32.0) / 4.0
+        table[i] = i32(quantize(logistic(x), 8))
+    return table
+
+const SIGMOID: i32[64] = sigmoid_table()
+
+def sigmoid(x: q8_8) -> q8_8:
+    # 4x, rounded down, is the raw value (256x) shifted right by 6
+    i = min(max((x.to_raw() &gt;&gt; 6) + 32, 0), 63)
+    return q8_8(SIGMOID[i])</pre>
+
+      <!-- ================================================================== -->
+      <h2 id="rejected"><span data-lang="pt">O que o compilador rejeita</span><span data-lang="en">What the compiler rejects</span></h2>
+      <p data-lang="pt">Cada bloco abaixo é rejeitado com um código de erro. Abra-os no playground,
+        leia a mensagem e corrija-os.</p>
+      <p data-lang="en">Each block below is rejected with an error code. Open them in the
+        playground, read the message and fix them.</p>
+      <pre class="code rejected" data-try># Rejected: E0415 `fact` is recursive
+def fact(n: u64) -> u64:
+    if n == 0:
+        return 1
+    return n * fact(n - 1)</pre>
+      <pre class="code rejected" data-try># Rejected: E0390 floating-point numbers are only allowed in comptime code
+def half(x: u32) -> u32:
+    y = 0.5
+    return x</pre>
+      <pre class="code rejected" data-try># Rejected: E0414 index 2 is out of bounds
+def third() -> i64:
+    arr = [1, 2]
+    return arr[2]</pre>
+      <pre class="code rejected" data-try># Rejected: E0410 the match does not cover Color.Blue
+enum Color:
+    Red
+    Green
+    Blue
+
+def code(c: Color) -> u8:
+    match c:
+        case Color.Red:
+            return 1
+        case Color.Green:
+            return 2</pre>
+      <table>
+        <tr><th><span data-lang="pt">Código</span><span data-lang="en">Code</span></th><th><span data-lang="pt">Regra</span><span data-lang="en">Rule</span></th></tr>
+        <tr><td><code>E0390</code></td><td><span data-lang="pt">ponto flutuante fora de código <code>comptime</code></span><span data-lang="en">floating point outside <code>comptime</code> code</span></td></tr>
+        <tr><td><code>E0405</code></td><td><span data-lang="pt">um tipo que não pode ser inferido</span><span data-lang="en">a type that cannot be inferred</span></td></tr>
+        <tr><td><code>E0408</code></td><td><span data-lang="pt"><code>?</code> fora de uma função que devolve <code>Option</code> ou de um programa</span><span data-lang="en"><code>?</code> outside a function returning an <code>Option</code> or a program</span></td></tr>
+        <tr><td><code>E0409</code></td><td><span data-lang="pt">um caminho que termina sem devolver um valor</span><span data-lang="en">a path that ends without returning a value</span></td></tr>
+        <tr><td><code>E0410</code></td><td><span data-lang="pt">um <code>match</code> que não cobre todos os valores</span><span data-lang="en">a <code>match</code> that misses values</span></td></tr>
+        <tr><td><code>E0412</code></td><td><span data-lang="pt"><code>while</code> sem <code>@bounded(N)</code>; assinatura de programa errada</span><span data-lang="en">a <code>while</code> without <code>@bounded(N)</code>; a wrong program signature</span></td></tr>
+        <tr><td><code>E0414</code></td><td><span data-lang="pt">índice constante fora dos limites</span><span data-lang="en">a constant index out of bounds</span></td></tr>
+        <tr><td><code>E0415</code></td><td><span data-lang="pt">recursão</span><span data-lang="en">recursion</span></td></tr>
+        <tr><td><code>E0402</code></td><td><span data-lang="pt">pacotes fora de programas de pacotes; mapas usados como valores</span><span data-lang="en">packets outside packet programs; maps used as values</span></td></tr>
+        <tr><td><code>E0407</code></td><td><span data-lang="pt">escrita em constantes, na memória do kernel, ou em <code>self</code> fora de <code>@mut</code></span><span data-lang="en">writes to constants, to kernel memory, or to <code>self</code> outside <code>@mut</code></span></td></tr>
+      </table>
+
+      <!-- ================================================================== -->
+      <h2 id="core"><span data-lang="pt">Vigil Core e o backend certificado</span><span data-lang="en">Vigil Core and the certified backend</span></h2>
+      <div data-lang="pt">
+        <p>O compilador tem dois geradores de código. O principal gera LLVM IR, que o clang compila
+          para eBPF. O segundo, o <strong>backend certificado</strong>, compila diretamente para
+          instruções eBPF, sem LLVM, os programas de <strong>Vigil Core</strong> — o subconjunto
+          formalizado em Lean: programas XDP e TC sobre inteiros, <code>bool</code> e arrays
+          locais, com <code>if</code>, <code>for i in range(N)</code>, bytes do pacote em
+          deslocamentos constantes (<code>ctx.parse[Byte](12)?.value</code>), o tamanho do pacote e
+          vereditos. Sem mapas, helpers, structs ou chamadas de função.</p>
+        <p>Como esse backend não depende do clang, ele roda no navegador — e o playground
+          <strong>executa</strong> o código gerado sobre um pacote que você escolhe. Abra este
+          filtro, vá à aba <em>Executar</em> e teste os pacotes DNS e NTP:</p>
+      </div>
+      <div data-lang="en">
+        <p>The compiler has two code generators. The main one makes LLVM IR, which clang compiles
+          to eBPF. The second, the <strong>certified backend</strong>, compiles straight to eBPF
+          instructions, without LLVM, the programs of <strong>Vigil Core</strong> — the subset
+          formalized in Lean: XDP and TC programs over integers, <code>bool</code> and local
+          arrays, with <code>if</code>, <code>for i in range(N)</code>, bytes of the packet at
+          constant offsets (<code>ctx.parse[Byte](12)?.value</code>), the length of the packet and
+          verdicts. No maps, helpers, structs or function calls.</p>
+        <p>Since that backend does not need clang, it runs in the browser — and the playground
+          <strong>runs</strong> the generated code on a packet you choose. Open this filter, go to
+          the <em>Run</em> tab and try the DNS and NTP packets:</p>
+      </div>
+      <pre class="code" data-try># Drops IPv4 UDP datagrams to port 53, reading the bytes of the packet at
+# constant offsets: a program of Vigil Core.
+from std.net import XdpContext, XdpAction, Byte
+
+@xdp
+def dns_drop(ctx: XdpContext) -> XdpAction:
+    # EtherType 0x0800 (IPv4).
+    if ctx.parse[Byte](12)?.value != 8 or ctx.parse[Byte](13)?.value != 0:
+        return XdpAction.PASS
+    # No IP options, and UDP.
+    if ctx.parse[Byte](14)?.value != 0x45 or ctx.parse[Byte](23)?.value != 17:
+        return XdpAction.PASS
+    port = u16(ctx.parse[Byte](36)?.value) &lt;&lt; 8 | u16(ctx.parse[Byte](37)?.value)
+    if port == 53:
+        return XdpAction.DROP
+    return XdpAction.PASS</pre>
+      <div class="callout">
+        <p data-lang="pt"><strong>Exercício.</strong> Altere o filtro para descartar também o tráfego
+          para a porta 123 (NTP) e confira na aba <em>Executar</em>. Depois, acrescente um mapa: o
+          programa continua compilando para LLVM IR, mas sai de Vigil Core.</p>
+        <p data-lang="en"><strong>Exercise.</strong> Change the filter to also drop the traffic to
+          port 123 (NTP), and check it in the <em>Run</em> tab. Then add a map: the program still
+          compiles to LLVM IR, but leaves Vigil Core.</p>
+      </div>
+      <p data-lang="pt">Na linha de comando, o mesmo backend está em
+        <code>vigil build --certified</code>, e <code>vigil simulate</code> executa o programa sobre
+        um pacote dado em hexadecimal.</p>
+      <p data-lang="en">On the command line, the same backend is <code>vigil build --certified</code>,
+        and <code>vigil simulate</code> runs the program on a packet given in hexadecimal.</p>
+
+      <!-- ================================================================== -->
+      <h2 id="next"><span data-lang="pt">Próximos passos</span><span data-lang="en">Next steps</span></h2>
+      <ul data-lang="pt">
+        <li>Explore os exemplos do <a href="playground.html">playground</a>: o detector de SYN
+          flood usa um <em>count-min sketch</em> e uma árvore de decisão; o classificador de
+          fluxos, uma rede neural em ponto fixo — tudo dentro do kernel.</li>
+        <li>Leia a biblioteca padrão em <code>std/</code>: <code>std.bpf</code> (helpers do
+          kernel), <code>std.net</code> (cabeçalhos e contextos de pacotes),
+          <code>std.fixed</code> (ponto fixo), <code>std.sketch</code> e <code>std.ml</code>. Ela é
+          escrita em Vigil.</li>
+        <li>Compile o compilador (<code>cd compiler &amp;&amp; cargo build --release</code>) e use
+          <code>vigil check</code>, <code>vigil build</code>, <code>vigil fmt</code> e
+          <code>vigil core</code> nos seus arquivos. Tipos do kernel
+          (<code>from kernel import task_struct</code>) precisam do BTF do kernel, disponível na
+          linha de comando mas não no navegador.</li>
+      </ul>
+      <ul data-lang="en">
+        <li>Explore the examples of the <a href="playground.html">playground</a>: the SYN flood
+          detector uses a <em>count-min sketch</em> and a decision tree; the flow classifier, a
+          fixed-point neural network — all inside the kernel.</li>
+        <li>Read the standard library in <code>std/</code>: <code>std.bpf</code> (kernel helpers),
+          <code>std.net</code> (packet headers and contexts), <code>std.fixed</code> (fixed point),
+          <code>std.sketch</code> and <code>std.ml</code>. It is written in Vigil.</li>
+        <li>Build the compiler (<code>cd compiler &amp;&amp; cargo build --release</code>) and use
+          <code>vigil check</code>, <code>vigil build</code>, <code>vigil fmt</code> and
+          <code>vigil core</code> on your files. Kernel types
+          (<code>from kernel import task_struct</code>) need the kernel's BTF, available on the
+          command line but not in the browser.</li>
+      </ul>
+    </article>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div><span data-lang="pt">Vigil — compilador de uma linguagem para eBPF.</span><span data-lang="en">Vigil — a compiler of a language for eBPF.</span></div>
+      <div><a href="index.html"><span data-lang="pt">Início</span><span data-lang="en">Home</span></a> · <a href="playground.html">Playground</a></div>
+    </div>
+  </footer>
+
+  <script type="module" src="js/tutorial.js"></script>
+</body>
+</html>

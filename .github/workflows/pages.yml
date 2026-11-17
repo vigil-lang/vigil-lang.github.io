@@ -1,0 +1,84 @@
+# The website on GitHub Pages.  The compiler in the browser, `pkg/`, is
+# built here from the other two repositories, laid out as on a developer's
+# machine: this one in `page/`, the compiler in `compiler/` (its latest
+# release, or the ref given when run by hand), and the standard library of
+# that compiler (its `std.ref`) in `std/`.  `compiler/build-wasm.sh` writes
+# into `../page/pkg/`.
+#
+# Runs on every push to `main`, by hand, and when the compiler publishes a
+# release (its release workflow runs this one).  In the settings of the
+# repository, Pages must have "GitHub Actions" as its source.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      compiler-ref:
+        description: Branch or tag of the compiler (empty for its latest release)
+        required: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer run does not wait for an older one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  COMPILER_REPO: vigil-lang/vigil
+  STD_REPO: https://github.com/vigil-lang/std
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: page
+      - name: Choose the compiler
+        id: compiler
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ inputs.compiler-ref }}
+        run: |
+          if [ -z "$REF" ]; then
+            REF=$(gh release view --repo "$COMPILER_REPO" --json tagName --jq .tagName 2>/dev/null || echo main)
+          fi
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.COMPILER_REPO }}
+          ref: ${{ steps.compiler.outputs.ref }}
+          path: compiler
+      - name: Check out the standard library
+        run: git clone --depth 1 --branch "$(cat compiler/std.ref)" "$STD_REPO" std
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: compiler
+      # The version of the `wasm-bindgen` crate in the Cargo.toml of the
+      # compiler: the two must be the same.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen@0.2.126
+      - run: ./compiler/build-wasm.sh
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: page
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
