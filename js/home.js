@@ -14,10 +14,24 @@ for (const pre of document.querySelectorAll("pre.code[data-code]")) {
   if (link) link.href = playgroundLink(code);
 }
 
-// The install command names the script of the site it is on, so that it
-// stays right wherever the site is published.
+// The install commands name the scripts of the site they are on, so that
+// they stay right wherever the site is published. The tab of the visitor's
+// system is open first.
+const INSTALL = {
+  unix: `curl -fsSL ${new URL("install.sh", location.href)} | sh`,
+  windows: `irm ${new URL("install.ps1", location.href)} | iex`,
+};
 const installCmd = document.getElementById("install-cmd");
-installCmd.textContent = `curl -fsSL ${new URL("install.sh", location.href)} | sh`;
+const osTabs = document.querySelectorAll(".os-tabs [data-os]");
+function showOs(os) {
+  installCmd.textContent = INSTALL[os];
+  for (const tab of osTabs) tab.setAttribute("aria-selected", String(tab.dataset.os === os));
+  for (const block of document.querySelectorAll("div[data-os]")) block.hidden = block.dataset.os !== os;
+}
+for (const tab of osTabs) tab.addEventListener("click", () => showOs(tab.dataset.os));
+const platform = navigator.userAgentData?.platform ?? navigator.platform ?? "";
+showOs(/win/i.test(platform) ? "windows" : "unix");
+
 const installCopy = document.getElementById("install-copy");
 installCopy.addEventListener("click", async () => {
   try {

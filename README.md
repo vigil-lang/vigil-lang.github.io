@@ -35,6 +35,8 @@ This is `vigil-lang/vigil-lang.github.io`, published on GitHub Pages by
 `.github/workflows/pages.yml`: the workflow clones `vigil-lang/vigil` (its
 latest release) into `../compiler` and `vigil-lang/std` (the `std.ref` of that
 compiler) into `../std`, builds `pkg/`, and publishes this directory.
-`pkg/` is not versioned. `install.sh` is the install script, served at
-`https://vigil-lang.github.io/install.sh`; it downloads the
-binaries of the releases of `vigil-lang/vigil`.
+`pkg/` is not versioned. `install.sh` (Linux, macOS) and `install.ps1`
+(Windows) are the install scripts, served at
+`https://vigil-lang.github.io/install.sh` and `.../install.ps1`; they
+download the binaries of the releases of `vigil-lang/vigil`. The home page
+shows the command of the visitor's system first.

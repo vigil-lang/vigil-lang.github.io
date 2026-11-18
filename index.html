@@ -203,16 +203,32 @@ def firewall(ctx: XdpContext) -> XdpAction:
         <div class="step">
           <div>
             <h3><span data-lang="pt">Instale o compilador</span><span data-lang="en">Install the compiler</span></h3>
+            <div class="os-tabs" role="tablist">
+              <button type="button" role="tab" data-os="unix" aria-selected="true">Linux / macOS</button>
+              <button type="button" role="tab" data-os="windows" aria-selected="false">Windows</button>
+            </div>
             <div class="install">
               <pre class="code small" id="install-cmd">curl -fsSL https://vigil-lang.github.io/install.sh | sh</pre>
               <button class="button small secondary" id="install-copy" type="button"><span data-lang="pt">Copiar</span><span data-lang="en">Copy</span></button>
             </div>
-            <p class="note" data-lang="pt">Linux e macOS, em x86_64 e aarch64; instala <code>vigil</code> em
-              <code>~/.local/bin</code>. <a href="install.sh">Leia o script</a> antes de executá-lo, ou compile
-              do código-fonte: <code>cd compiler &amp;&amp; cargo build --release</code>.</p>
-            <p class="note" data-lang="en">Linux and macOS, on x86_64 and aarch64; installs <code>vigil</code> in
-              <code>~/.local/bin</code>. <a href="install.sh">Read the script</a> before running it, or build
-              from source: <code>cd compiler &amp;&amp; cargo build --release</code>.</p>
+            <div data-os="unix">
+              <p class="note" data-lang="pt">Linux e macOS, em x86_64 e aarch64; instala <code>vigil</code> em
+                <code>~/.local/bin</code>. <a href="install.sh">Leia o script</a> antes de executá-lo, ou compile
+                do código-fonte: <code>cd compiler &amp;&amp; cargo build --release</code>.</p>
+              <p class="note" data-lang="en">Linux and macOS, on x86_64 and aarch64; installs <code>vigil</code> in
+                <code>~/.local/bin</code>. <a href="install.sh">Read the script</a> before running it, or build
+                from source: <code>cd compiler &amp;&amp; cargo build --release</code>.</p>
+            </div>
+            <div data-os="windows" hidden>
+              <p class="note" data-lang="pt">No PowerShell, em Windows x86_64 e ARM64; instala <code>vigil.exe</code> em
+                <code>%LOCALAPPDATA%\Programs\vigil</code> e o põe no <code>PATH</code> do usuário, sem pedir
+                administrador. <a href="install.ps1">Leia o script</a> antes de executá-lo. Para gerar objetos pelo
+                LLVM, instale o clang: <code>winget install LLVM.LLVM</code>.</p>
+              <p class="note" data-lang="en">In PowerShell, on Windows x86_64 and ARM64; installs <code>vigil.exe</code> in
+                <code>%LOCALAPPDATA%\Programs\vigil</code> and adds it to the user's <code>PATH</code>, without
+                administrator rights. <a href="install.ps1">Read the script</a> before running it. To build objects
+                through LLVM, install clang: <code>winget install LLVM.LLVM</code>.</p>
+            </div>
           </div>
         </div>
         <div class="step">

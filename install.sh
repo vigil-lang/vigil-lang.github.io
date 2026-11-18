@@ -47,6 +47,10 @@ target() {
     case "$os" in
         Linux) echo "$arch-unknown-linux-musl" ;;
         Darwin) echo "$arch-apple-darwin" ;;
+        # Git Bash, MSYS2 or Cygwin: the binary for Windows is a zip,
+        # installed by the PowerShell script
+        MINGW* | MSYS* | CYGWIN*)
+            die "on Windows, install from PowerShell: irm https://vigil-lang.github.io/install.ps1 | iex" ;;
         *) die "no binary for $os; build from source: $(from_source)" ;;
     esac
 }

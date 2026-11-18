@@ -37,7 +37,7 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: page
       - name: Choose the compiler
@@ -50,7 +50,7 @@ jobs:
             REF=$(gh release view --repo "$COMPILER_REPO" --json tagName --jq .tagName 2>/dev/null || echo main)
           fi
           echo "ref=$REF" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ${{ env.COMPILER_REPO }}
           ref: ${{ steps.compiler.outputs.ref }}

@@ -305,6 +305,19 @@ section.band .lead { text-align: center; color: var(--muted); max-width: 720px; 
   font-weight: 700;
 }
 .step h3 { margin: 6px 0 6px; }
+.os-tabs { display: inline-flex; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.os-tabs button {
+  border: 0;
+  background: var(--bg-alt);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.os-tabs button + button { border-left: 1px solid var(--border); }
+.os-tabs button[aria-selected="true"] { background: var(--accent); color: #1c1400; }
 .install { display: flex; gap: 10px; align-items: stretch; }
 .install pre.code { flex: 1; min-width: 0; overflow-x: auto; white-space: pre; }
 .install .button { flex: none; }
